@@ -1,3 +1,8 @@
+
+
+// https://replit.com/join/hcjjmznfjx-rudrakshpotghan
+
+
 #include <algorithm>
 #include <iostream>
 #include <vector>
@@ -35,8 +40,8 @@ bool compareArrivalTime(const Process &a, const Process &b) {
   return a.arrivalTime < b.arrivalTime;
 }
 
-// Function to perform LJF scheduling
-void LJF(vector<Process> &processes) {
+// Function to perform LJF scheduling for 0 Arrival Time
+void LJF_0ArrivalTime(vector<Process> &processes) {
   sort(processes.begin(), processes.end(),
        [](const Process &a, const Process &b) {
          return a.burstTime > b.burstTime;
@@ -46,8 +51,8 @@ void LJF(vector<Process> &processes) {
       processes); // LJF is essentially FCFS after sorting by burst time
 }
 
-// Function to perform SJF scheduling
-void SJF(vector<Process> &processes) {
+// Function to perform SJF scheduling for 0 Arrival Time
+void SJF_0ArrivalTime(vector<Process> &processes) {
   sort(processes.begin(), processes.end(),
        [](const Process &a, const Process &b) {
          return a.burstTime < b.burstTime;
@@ -57,8 +62,72 @@ void SJF(vector<Process> &processes) {
       processes); // SJF is essentially FCFS after sorting by burst time
 }
 
-// Function to perform Round Robin scheduling
+// Function to perform Round Robin scheduling for 0 Arrival Time
+void RoundRobin_0ArrivalTime(vector<Process> &processes, int timeQuantum) {
+  int currentTime = 0;
+  while (!processes.empty()) {
+    bool allProcessesCompleted = true;
+    for (auto &process : processes) {
+      if (process.remainingTime > 0) {
+        allProcessesCompleted = false;
+        int executeTime = min(process.remainingTime, timeQuantum);
+        process.remainingTime -= executeTime;
+        currentTime += executeTime;
+        process.completionTime = currentTime;
+        if (process.remainingTime == 0) {
+          // Calculate waiting time and turnaround time
+          process.waitingTime =
+              process.completionTime - process.arrivalTime - process.burstTime;
+          process.turnaroundTime = process.completionTime - process.arrivalTime;
+        }
+      }
+    }
+    if (allProcessesCompleted)
+      break;
+  }
+}
+
+// Function to perform FCFS scheduling for varying Arrival Time
+void FCFS(vector<Process> &processes) {
+  sort(processes.begin(), processes.end(),
+       [](const Process &a, const Process &b) {
+         return a.arrivalTime < b.arrivalTime;
+       });
+
+  int currentTime = 0;
+  for (auto &process : processes) {
+    process.completionTime =
+        max(process.arrivalTime, currentTime) + process.burstTime;
+    currentTime = process.completionTime;
+    process.turnaroundTime = process.completionTime - process.arrivalTime;
+    process.waitingTime = max(0, process.completionTime - process.arrivalTime -
+                                     process.burstTime);
+  }
+}
+
+// Function to perform LJF scheduling for varying Arrival Time
+void LJF(vector<Process> &processes) {
+  sort(processes.begin(), processes.end(),
+       [](const Process &a, const Process &b) {
+         return a.burstTime > b.burstTime;
+       });
+
+  FCFS(processes); // LJF is essentially FCFS after sorting by burst time
+}
+
+// Function to perform SJF scheduling for varying Arrival Time
+void SJF(vector<Process> &processes) {
+  sort(processes.begin(), processes.end(),
+       [](const Process &a, const Process &b) {
+         return a.burstTime < b.burstTime;
+       });
+
+  FCFS(processes); // SJF is essentially FCFS after sorting by burst time
+}
+
+// Function to perform Round Robin scheduling for varying Arrival Time
 void RoundRobin(vector<Process> &processes, int timeQuantum) {
+  FCFS(processes); // Sort based on arrival time before Round Robin
   int currentTime = 0;
   while (!processes.empty()) {
     bool allProcessesCompleted = true;
@@ -139,17 +208,17 @@ int main() {
         break;
       case 2:
         cout << "\nScheduling for 0 Arrival Time (LJF):\n";
-        LJF(processes);
+        LJF_0ArrivalTime(processes);
         break;
       case 3:
         cout << "\nScheduling for 0 Arrival Time (SJF):\n";
-        SJF(processes);
+        SJF_0ArrivalTime(processes);
         break;
       case 4:
         int timeQuantum;
         cout << "\nEnter the time quantum for Round Robin: ";
         cin >> timeQuantum;
-        RoundRobin(processes, timeQuantum);
+        RoundRobin_0ArrivalTime(processes, timeQuantum);
         break;
       default:
         cout << "Invalid choice!";
@@ -158,12 +227,15 @@ int main() {
 
       // Print the results (No need to display arrival time for 0 arrival time
       // scheduling)
+      cout << "+-----------+-------+-------+-------+" << endl;
       cout << "|\tProcess\t|\tBT\t|\tWT\t|\tTAT\t|\n";
+      cout << "+-----------+-------+-------+-------+" << endl;
       for (int i = 0; i < numProcess; i++) {
         cout << "|\t" << processes[i].name << "\t\t|\t"
              << processes[i].burstTime << "\t|\t" << processes[i].waitingTime
              << "\t|\t" << processes[i].turnaroundTime << "\t|\n";
       }
+      cout << "+-----------+-------+-------+-------+" << endl;
 
       // Print the Gantt chart
       cout << endl;
@@ -181,9 +253,19 @@ int main() {
       break;
     }
     case 2: {
+      // Prompt for scheduling technique for varying arrival time
+      cout << endl;
+      cout << "Choose scheduling technique for Varying Arrival Time:\n";
+      cout << "1. FCFS\n";
+      cout << "2. LJF\n";
+      cout << "3. SJF\n";
+      cout << "4. Round Robin\n";
+      cout << endl;
+      cout << "Enter your choice: ";
+      cin >> choice;
+
       // Create a vector to store the processes
       int numProcess;
-      cout << endl;
       cout << "\nEnter the number of processes: ";
       cin >> numProcess;
       vector<Process> processes(numProcess);
@@ -202,23 +284,13 @@ int main() {
             processes[i].burstTime; // Initialize remaining time
       }
 
-      // Sort processes based on arrival time for varying arrival time
-      sort(processes.begin(), processes.end(), compareArrivalTime);
-
-      // Perform scheduling for Varying Arrival Time (Ask user for scheduling
-      // algorithm)
+      // Perform scheduling for Varying Arrival Time based on the chosen
+      // algorithm
       cout << endl;
       cout << "\nScheduling for Varying Arrival Time:\n";
-      cout << endl;
-      cout << "Choose scheduling algorithm:\n";
-      cout << "1. FCFS\n2. LJF\n3. SJF\n4. Round Robin\n";
-      cout << endl;
-      cout << "Enter your choice: ";
-      cin >> choice;
-
       switch (choice) {
       case 1:
-        FCFS_0ArrivalTime(processes);
+        FCFS(processes);
         break;
       case 2:
         LJF(processes);
@@ -238,13 +310,16 @@ int main() {
 
       // Print the results for varying arrival time
       cout << endl;
+      cout << "+-----------+-------+-------+-------+-------+" << endl;
       cout << "|\tProcess\t|\tAT\t|\tBT\t|\tWT\t|\tTAT\t|\n";
+      cout << "+-----------+-------+-------+-------+-------+" << endl;
       for (int i = 0; i < numProcess; i++) {
         cout << "|\t" << processes[i].name << "\t\t|\t"
              << processes[i].arrivalTime << "\t|\t" << processes[i].burstTime
              << "\t|\t" << processes[i].waitingTime << "\t|\t"
              << processes[i].turnaroundTime << "\t|\n";
       }
+      cout << "+-----------+-------+-------+-------+-------+" << endl;
 
       // Print the Gantt chart
       cout << endl;
